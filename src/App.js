@@ -2,10 +2,13 @@ import React from "react";
 import { commerce } from "./api/Commerce";
 import { Navbar, Products, Cart } from "./components";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Checkout from "./components/CheckoutForm/Checkout/Checkout";
 
 const App = () => {
   const [products, setProducts] = React.useState([]);
   const [cart, setCart] = React.useState({});
+  const [order, setOrder] = React.useState({});
+  const [error, setError] = React.useState("");
 
   const fetchProducts = async () => {
     const { data } = await commerce.products.list();
@@ -40,12 +43,25 @@ const App = () => {
     setCart(empty.cart);
   };
 
+  const refresh = async () => {
+    const newCart = await commerce.cart.refresh();
+    setCart(newCart);
+  };
+
+  const handleCheckout = async (tokenId, newOrder) => {
+    try {
+      const incommingOrder = await commerce.checkout.capture(tokenId, newOrder);
+      setOrder(incommingOrder);
+      refresh();
+    } catch (e) {
+      setError(e?.data?.message);
+    }
+  };
+
   React.useEffect(() => {
     fetchProducts();
     fetchCart();
   }, []);
-
-  console.log(cart);
 
   return (
     <BrowserRouter>
@@ -66,6 +82,17 @@ const App = () => {
                 handleUpdateCartQuantity={handleUpdateCartQuantity}
                 handleRemoveCartItems={handleRemoveCartItems}
                 handleEmptyItems={handleEmptyItems}
+              />
+            }
+          />
+          <Route
+            path="/checkout"
+            element={
+              <Checkout
+                cart={cart}
+                order={order}
+                error={error}
+                handleCheckout={handleCheckout}
               />
             }
           />
